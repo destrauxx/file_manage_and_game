@@ -8,3 +8,6 @@ def save():
         },
         "word": "orange"
 }
+
+def load():
+    return data
