@@ -9,5 +9,5 @@ def save():
         "word": "orange"
 }
 
-def load():
-    return data
+def load(data):
+    print(data)
