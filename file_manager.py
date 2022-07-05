@@ -10,7 +10,6 @@ class FileManager:
             if not os.path.exists(f'{BASE_DIR}/data'):
                 os.mkdir('data')
             func(self, data)
-
         return wrapper
 
     def load_data(self, name):
