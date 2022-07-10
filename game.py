@@ -3,28 +3,32 @@ from tkinter import *
 from config import CANVAS_SIZE, BG_COLOR, EMPTY, FIELD_SIZE, RECT_SIZE
 from random import randint
 
+
 class Board(Tk):
     def __init__(self):
         super().__init__()
-        self.canvas = Canvas(width=CANVAS_SIZE, height=CANVAS_SIZE, bg=BG_COLOR)
+        self.canvas = Canvas(
+            width=CANVAS_SIZE, height=CANVAS_SIZE, bg=BG_COLOR)
         self.canvas.pack()
         self.field_size = FIELD_SIZE
         self.field = self.build_field_grid()
-    
+
     def build_field_grid(self):
         '''
         Строит сетку поля по заданным данным (размер клетки, размер поля)
         '''
         row = [EMPTY] * self.field_size
         col = []
-        for _ in range(self.field_size): 
+        for _ in range(self.field_size):
             col.append(row[:])
-        return col  
-    
+        return col
+
     def get_field_size(self):
         return self.field_size
 
+
 board = Board()
+
 
 class Snake():
     def __init__(self):
@@ -36,7 +40,8 @@ class Snake():
         self.player_y = self.player_pos_col * self.rect_size
         self.snake = self.render_player()
         board.canvas.bind_all('<KeyPress>', self.change_direction)
-        self.player_direction = ''
+        self.snake_direction = ''
+        self.snake_size = 1
 
     def build_player_on_grid(self):
         board.field[self.player_pos_row][self.player_pos_row] = 'player'
@@ -47,26 +52,27 @@ class Snake():
         '''
         r_size = self.rect_size
         self.build_player_on_grid()
-        player = board.canvas.create_rectangle(self.player_x, self.player_y, self.player_x + r_size, self.player_y + r_size, fill='white')
+        player = board.canvas.create_rectangle(
+            self.player_x, self.player_y, self.player_x + r_size, self.player_y + r_size, fill='white')
         return player
 
     def change_direction(self, event):
         '''
         Изменяет направление движения по кнопке
         '''
-        
-        if (event.keysym == 'Up' or event.keysym == 'w') and self.player_direction != 'down':
-            self.player_direction = 'up'
 
-        if (event.keysym == 'Down' or event.keysym == 's') and self.player_direction != 'up':
-            self.player_direction = 'down'
+        if (event.keysym == 'Up' or event.keysym == 'w') and self.snake_direction != 'down':
+            self.snake_direction = 'up'
 
-        if (event.keysym == 'Right' or event.keysym == 'd') and self.player_direction != 'left':
-            self.player_direction = 'right'
+        if (event.keysym == 'Down' or event.keysym == 's') and self.snake_direction != 'up':
+            self.snake_direction = 'down'
 
-        if (event.keysym == 'Left' or event.keysym == 'a') and self.player_direction != 'right':
-            self.player_direction = 'left'
-   
+        if (event.keysym == 'Right' or event.keysym == 'd') and self.snake_direction != 'left':
+            self.snake_direction = 'right'
+
+        if (event.keysym == 'Left' or event.keysym == 'a') and self.snake_direction != 'right':
+            self.snake_direction = 'left'
+
     def move(self, apple):
         '''
         Постоянно смещает змейку в сторону направления движения
@@ -74,9 +80,9 @@ class Snake():
         field = board.field
         r_size = self.rect_size
         field_size = self.field_size
-        player_direction = self.player_direction
+        snake_direction = self.snake_direction
 
-        if player_direction == 'up':
+        if snake_direction == 'up':
             self.player_pos_col -= 1
             self.check_apple_eat(apple)
 
@@ -87,7 +93,7 @@ class Snake():
                 field[self.player_pos_row][self.player_pos_col] = 'player'
                 board.canvas.move(self.snake, 0, -r_size)
 
-        if player_direction == 'down':
+        if snake_direction == 'down':
             self.player_pos_col += 1
             self.check_apple_eat(apple)
 
@@ -98,7 +104,7 @@ class Snake():
                 field[self.player_pos_row][self.player_pos_col] = 'player'
                 board.canvas.move(self.snake, 0, r_size)
 
-        if player_direction == 'left':
+        if snake_direction == 'left':
             self.player_pos_row -= 1
             self.check_apple_eat(apple)
 
@@ -109,7 +115,7 @@ class Snake():
                 field[self.player_pos_row][self.player_pos_col] = 'player'
                 board.canvas.move(self.snake, -r_size, 0)
 
-        if player_direction == 'right':
+        if snake_direction == 'right':
             self.player_pos_row += 1
             self.check_apple_eat(apple)
 
@@ -126,11 +132,13 @@ class Snake():
         field = board.field
         if field[self.player_pos_row][self.player_pos_col] == 'apple':
             board.field[self.player_pos_row][self.player_pos_col] = 'empty'
-            board.canvas.delete(apple)
-            print(board.canvas.find_all())
+            apple.destrukt_apple()
+            self.snake_size += 1
             apple.place_apple()
 
+
 snake = Snake()
+
 
 class Apple():
     def __init__(self):
@@ -150,10 +158,12 @@ class Apple():
         x = row * apple_size
         y = col * apple_size
         board.field[row][col] = 'apple'
-        self.apple = board.canvas.create_rectangle(x, y, x + apple_size, y + apple_size, fill='red')
-        self.tag = f'apple#{self.apple}'
-        print(self.tag)
-    
+        self.apple = board.canvas.create_rectangle(
+            x, y, x + apple_size, y + apple_size, fill='red')
+
+    def destrukt_apple(self):
+        board.canvas.delete(self.apple)
+
 apple = Apple()
 apple.place_apple()
 
@@ -161,6 +171,7 @@ while True:
     apple = snake.move(apple)
     board.update()
     sleep(0.1)
+
 
 def save():
     return {
@@ -171,7 +182,8 @@ def save():
             "hard": 5,
         },
         "word": "orange"
-}
+    }
+
 
 def load(data):
     print(data)
