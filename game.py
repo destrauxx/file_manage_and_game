@@ -1,51 +1,59 @@
 from time import sleep
 from tkinter import *
-from config import CANVAS_SIZE, BG_COLOR, EMPTY, RATIO, RECT_SIZE
+from config import CANVAS_SIZE, BG_COLOR, EMPTY, FIELD_SIZE, RECT_SIZE
+from random import randint
 
-# class Apple():
-#     pass
 class Board(Tk):
     def __init__(self):
         super().__init__()
         self.canvas = Canvas(width=CANVAS_SIZE, height=CANVAS_SIZE, bg=BG_COLOR)
         self.canvas.pack()
-        self.rect_size = RECT_SIZE
-        self.player_x = CANVAS_SIZE // 2 - RECT_SIZE
-        self.player_y = CANVAS_SIZE // 2 - RECT_SIZE
-        self.ratio = RATIO
-        self.player_pos_row = self.ratio//2-1
-        self.player_pos_col = self.ratio//2-1
-        self.empty = EMPTY
-        self.speed = 0.1
-        self.canvas.bind_all('<KeyPress>', self.change_direction)
-        self.pole = self.build_grid()
-        self.player = self.render_player()
-        self.player_direction = ''
+        self.field_size = FIELD_SIZE
+        self.field = self.build_field_grid()
     
-    def build_grid(self):
-        row = [self.empty] * self.ratio
+    def build_field_grid(self):
+        '''
+        Строит сетку поля по заданным данным (размер клетки, размер поля)
+        '''
+        row = [EMPTY] * self.field_size
         col = []
-        for _ in range(self.ratio): 
+        for _ in range(self.field_size): 
             col.append(row[:])
-        print(col)
-        return col
+        return col  
+    
+    def get_field_size(self):
+        return self.field_size
+
+board = Board()
+
+class Snake():
+    def __init__(self):
+        self.field_size = FIELD_SIZE
+        self.rect_size = RECT_SIZE
+        self.player_pos_row = randint(0, self.field_size-2)
+        self.player_pos_col = randint(0, self.field_size-2)
+        self.player_x = self.player_pos_row * self.rect_size
+        self.player_y = self.player_pos_col * self.rect_size
+        self.snake = self.render_player()
+        board.canvas.bind_all('<KeyPress>', self.change_direction)
+        self.player_direction = ''
+
+    def build_player_on_grid(self):
+        board.field[self.player_pos_row][self.player_pos_row] = 'player'
 
     def render_player(self):
+        '''
+        Отрисовывает игрока на игровом поле
+        '''
         r_size = self.rect_size
-        field = self.pole
-        field[self.player_pos_row][self.player_pos_col] = 'player'
-        for r in range(self.ratio):
-            for c in range(self.ratio):
-                if field[r][c] == 'player':
-                    player = self.canvas.create_rectangle(self.player_x, self.player_y, self.player_x + r_size, self.player_y + r_size, fill='white')
+        self.build_player_on_grid()
+        player = board.canvas.create_rectangle(self.player_x, self.player_y, self.player_x + r_size, self.player_y + r_size, fill='white')
         return player
 
     def change_direction(self, event):
-        '''Magic number: 6, its a gap between edges and figure
-        Render player on field
         '''
-        field = self.pole
-        r_size = self.rect_size
+        Изменяет направление движения по кнопке
+        '''
         
         if (event.keysym == 'Up' or event.keysym == 'w') and self.player_direction != 'down':
             self.player_direction = 'up'
@@ -59,47 +67,100 @@ class Board(Tk):
         if (event.keysym == 'Left' or event.keysym == 'a') and self.player_direction != 'right':
             self.player_direction = 'left'
    
-    def move(self):
-        field = self.pole
+    def move(self, apple):
+        '''
+        Постоянно смещает змейку в сторону направления движения
+        '''
+        field = board.field
         r_size = self.rect_size
+        field_size = self.field_size
+        player_direction = self.player_direction
 
-        if self.player_direction == 'up':
+        if player_direction == 'up':
             self.player_pos_col -= 1
+            self.check_apple_eat(apple)
+
             if field[self.player_pos_row][self.player_pos_col] != 'empty' or self.player_pos_col < 0:
                 self.player_pos_col += 1
             elif field[self.player_pos_row][self.player_pos_col] == 'empty':
                 field[self.player_pos_row][self.player_pos_col + 1] = 'empty'
                 field[self.player_pos_row][self.player_pos_col] = 'player'
-                self.canvas.move(self.player, 0, -r_size)
+                board.canvas.move(self.snake, 0, -r_size)
 
-        if self.player_direction == 'down':
+        if player_direction == 'down':
             self.player_pos_col += 1
-            if field[self.player_pos_row][self.player_pos_col] != 'empty' or self.player_pos_col > self.ratio - 2:
+            self.check_apple_eat(apple)
+
+            if field[self.player_pos_row][self.player_pos_col] != 'empty' or self.player_pos_col > field_size - 2:
                 self.player_pos_col -= 1
             elif field[self.player_pos_row][self.player_pos_col] == 'empty':
                 field[self.player_pos_row][self.player_pos_col - 1] = 'empty'
                 field[self.player_pos_row][self.player_pos_col] = 'player'
-                self.canvas.move(self.player, 0, r_size)
+                board.canvas.move(self.snake, 0, r_size)
 
-        if self.player_direction == 'right':
-            self.player_pos_row += 1
-            
-            if field[self.player_pos_row][self.player_pos_col] != 'empty' or self.player_pos_row > self.ratio - 2:
-                    self.player_pos_row -= 1
-            elif field[self.player_pos_row][self.player_pos_col] == 'empty':
-                field[self.player_pos_row - 1][self.player_pos_col] = 'empty'
-                field[self.player_pos_row][self.player_pos_col] = 'player'
-                self.canvas.move(self.player, r_size, 0)
-
-        if self.player_direction == 'left':
+        if player_direction == 'left':
             self.player_pos_row -= 1
+            self.check_apple_eat(apple)
+
             if field[self.player_pos_row][self.player_pos_col] != 'empty' or self.player_pos_row < 0:
                 self.player_pos_row += 1
             elif field[self.player_pos_row][self.player_pos_col] == 'empty':
                 field[self.player_pos_row + 1][self.player_pos_col] = 'empty'
                 field[self.player_pos_row][self.player_pos_col] = 'player'
-                self.canvas.move(self.player, -r_size, 0)
-        sleep(self.speed)
+                board.canvas.move(self.snake, -r_size, 0)
+
+        if player_direction == 'right':
+            self.player_pos_row += 1
+            self.check_apple_eat(apple)
+
+            if field[self.player_pos_row][self.player_pos_col] != 'empty' or self.player_pos_row > field_size - 2:
+                self.player_pos_row -= 1
+            elif field[self.player_pos_row][self.player_pos_col] == 'empty':
+                field[self.player_pos_row - 1][self.player_pos_col] = 'empty'
+                field[self.player_pos_row][self.player_pos_col] = 'player'
+                board.canvas.move(self.snake, r_size, 0)
+
+        return apple
+
+    def check_apple_eat(self, apple):
+        field = board.field
+        if field[self.player_pos_row][self.player_pos_col] == 'apple':
+            board.field[self.player_pos_row][self.player_pos_col] = 'empty'
+            board.canvas.delete(apple)
+            print(board.canvas.find_all())
+            apple.place_apple()
+
+snake = Snake()
+
+class Apple():
+    def __init__(self):
+        self.apple_size = RECT_SIZE
+        self.field_size = board.get_field_size()
+
+    def place_apple(self):
+        row = randint(0, self.field_size-2)
+        col = randint(0, self.field_size-2)
+        field_size = self.field_size
+        apple_size = self.apple_size
+
+        while row == snake.player_pos_row or col == snake.player_pos_row:
+            row = randint(0, field_size-2)
+            col = randint(0, field_size-2)
+
+        x = row * apple_size
+        y = col * apple_size
+        board.field[row][col] = 'apple'
+        self.apple = board.canvas.create_rectangle(x, y, x + apple_size, y + apple_size, fill='red')
+        self.tag = f'apple#{self.apple}'
+        print(self.tag)
+    
+apple = Apple()
+apple.place_apple()
+
+while True:
+    apple = snake.move(apple)
+    board.update()
+    sleep(0.1)
 
 def save():
     return {
@@ -114,11 +175,3 @@ def save():
 
 def load(data):
     print(data)
-
-
-board = Board()
-while True:
-    board.move()
-    board.update()
-
-# board.mainloop()
