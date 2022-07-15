@@ -32,19 +32,20 @@ board = Board()
 
 class Snake():
     def __init__(self):
-        self.field_size = FIELD_SIZE
+        self.field_size = board.get_field_size()
         self.rect_size = RECT_SIZE
-        self.player_pos_row = randint(0, self.field_size-2)
-        self.player_pos_col = randint(0, self.field_size-2)
-        self.player_x = self.player_pos_row * self.rect_size
-        self.player_y = self.player_pos_col * self.rect_size
+        self.player_positions = [[self.field_size//2-1, self.field_size//2-1]]
+        # self.player_positions[0][1] = [self.field_size//2-1]
+        self.player_coords = [[self.player_positions[0][0] * self.rect_size, self.player_positions[0][1] * self.rect_size]]
+        self.player_parts_tags = []
         self.snake = self.render_player()
         board.canvas.bind_all('<KeyPress>', self.change_direction)
         self.snake_direction = ''
-        self.snake_size = 1
 
     def build_player_on_grid(self):
-        board.field[self.player_pos_row][self.player_pos_row] = 'player'
+        board.field[self.player_positions[0][0]][self.player_positions[0][1]] = 'player'
+        # for position in self.player_positions:
+        #     board.field[position[0]][position[1]] = 'player'
 
     def render_player(self):
         '''
@@ -52,9 +53,13 @@ class Snake():
         '''
         r_size = self.rect_size
         self.build_player_on_grid()
-        player = board.canvas.create_rectangle(
-            self.player_x, self.player_y, self.player_x + r_size, self.player_y + r_size, fill='white')
-        return player
+        x = self.player_coords[0][0]
+        y = self.player_coords[0][1]
+        self.player_parts_tags.append(
+            board.canvas.create_rectangle(x, y, x + r_size, y + r_size, fill='green')
+            )
+
+    # def render_new_part(self):    
 
     def change_direction(self, event):
         '''
@@ -83,59 +88,84 @@ class Snake():
         snake_direction = self.snake_direction
 
         if snake_direction == 'up':
-            self.player_pos_col -= 1
-            self.check_apple_eat(apple)
+            self.player_positions[-1][1] = self.player_positions[0][1] - 1
+            apple_eated = self.check_apple_eat(apple)
 
-            if field[self.player_pos_row][self.player_pos_col] != 'empty' or self.player_pos_col < 0:
-                self.player_pos_col += 1
-            elif field[self.player_pos_row][self.player_pos_col] == 'empty':
-                field[self.player_pos_row][self.player_pos_col + 1] = 'empty'
-                field[self.player_pos_row][self.player_pos_col] = 'player'
-                board.canvas.move(self.snake, 0, -r_size)
+            if self.player_positions[0][1] < 0:
+                for snake_part in self.player_parts_tags:
+                    board.canvas.delete(snake_part)
+            elif field[self.player_positions[0][0]][self.player_positions[0][1]] == 'empty':
+                if apple_eated:
+                    print('APPLE EATED!')
+                    self.player_positions.append([self.player_positions[-1][0], self.player_positions[-1][1] + 1])
+                    field[self.player_positions[-1][0]][self.player_positions[-1][1]] = 'player'
+                    self.player_coords.append([self.player_positions[-1][0] * r_size, self.player_positions[-1][1] * r_size])
+                    self.player_parts_tags.append(
+                        board.canvas.create_rectangle(
+                            self.player_coords[-1][0], self.player_coords[-1][1], self.player_coords[-1][0] + r_size, self.player_coords[-1][1] + r_size, fill='green')
+                    )
+                else:
+                    field[self.player_positions[0][0]][self.player_positions[0][1] + 1] = 'empty'
+
+                board.canvas.move(self.player_parts_tags[-1], self.player_coords[0][0] - self.player_coords[-1][0], self.player_coords[0][1] - r_size - self.player_coords[-1][1])
+
+                # field[self.player_positions[0][0]][self.player_positions[0][1]] = 'player'
+                last_player_coords = self.player_coords.pop()
+                last_player_position = self.player_positions.pop()
+                last_player_tag = self.player_parts_tags.pop()
+                self.player_coords.insert(0, last_player_coords)
+                self.player_positions.insert(0, last_player_position)
+                self.player_parts_tags.insert(0, last_player_tag)
+
+                self.player_coords[0][1] -= r_size
+                print(self.player_coords, self.player_positions, self.player_parts_tags)
 
         if snake_direction == 'down':
-            self.player_pos_col += 1
-            self.check_apple_eat(apple)
+            self.player_positions[0][1] += 1
+            if self.player_positions[0][1] > field_size - 2:
+                self.player_positions[0][1] -= 1
+            apple_eated = self.check_apple_eat(apple)
 
-            if field[self.player_pos_row][self.player_pos_col] != 'empty' or self.player_pos_col > field_size - 2:
-                self.player_pos_col -= 1
-            elif field[self.player_pos_row][self.player_pos_col] == 'empty':
-                field[self.player_pos_row][self.player_pos_col - 1] = 'empty'
-                field[self.player_pos_row][self.player_pos_col] = 'player'
-                board.canvas.move(self.snake, 0, r_size)
+            if field[self.player_positions[0][0]][self.player_positions[0][1]] == 'empty':
+                field[self.player_positions[0][0]][self.player_positions[0][1] - 1] = 'empty'
+                field[self.player_positions[0][0]][self.player_positions[0][1]] = 'player'
+                self.player_coords[0][1] += r_size
+                board.canvas.move(self.player_parts_tags[0], 0, r_size)
 
         if snake_direction == 'left':
-            self.player_pos_row -= 1
-            self.check_apple_eat(apple)
+            self.player_positions[0][0] -= 1
+            apple_eated = self.check_apple_eat(apple)
 
-            if field[self.player_pos_row][self.player_pos_col] != 'empty' or self.player_pos_row < 0:
-                self.player_pos_row += 1
-            elif field[self.player_pos_row][self.player_pos_col] == 'empty':
-                field[self.player_pos_row + 1][self.player_pos_col] = 'empty'
-                field[self.player_pos_row][self.player_pos_col] = 'player'
-                board.canvas.move(self.snake, -r_size, 0)
+            if field[self.player_positions[0][0]][self.player_positions[0][1]] != 'empty' or self.player_positions[0][0] < 0:
+                self.player_positions[0][0] += 1
+            elif field[self.player_positions[0][0]][self.player_positions[0][1]] == 'empty':
+                field[self.player_positions[0][0] + 1][self.player_positions[0][1]] = 'empty'
+                field[self.player_positions[0][0]][self.player_positions[0][1]] = 'player'
+                self.player_coords[0][0] -= r_size
+                board.canvas.move(self.player_parts_tags[0], -r_size, 0)
 
         if snake_direction == 'right':
-            self.player_pos_row += 1
-            self.check_apple_eat(apple)
+            self.player_positions[0][0] += 1
+            if self.player_positions[0][0] > field_size - 2:
+                self.player_positions[0][0] -= 1
+            apple_eated = self.check_apple_eat(apple)
 
-            if field[self.player_pos_row][self.player_pos_col] != 'empty' or self.player_pos_row > field_size - 2:
-                self.player_pos_row -= 1
-            elif field[self.player_pos_row][self.player_pos_col] == 'empty':
-                field[self.player_pos_row - 1][self.player_pos_col] = 'empty'
-                field[self.player_pos_row][self.player_pos_col] = 'player'
-                board.canvas.move(self.snake, r_size, 0)
-
+            if field[self.player_positions[0][0]][self.player_positions[0][1]] == 'empty':
+                field[self.player_positions[0][0] - 1][self.player_positions[0][1]] = 'empty'
+                field[self.player_positions[0][0]][self.player_positions[0][1]] = 'player'
+                self.player_coords[0][0] += r_size
+                board.canvas.move(self.player_parts_tags[0], r_size, 0)
+        # print('[OUT]', self.player_coords, self.player_positions, self.player_parts_tags)
         return apple
 
     def check_apple_eat(self, apple):
         field = board.field
-        if field[self.player_pos_row][self.player_pos_col] == 'apple':
-            board.field[self.player_pos_row][self.player_pos_col] = 'empty'
+        if field[self.player_positions[-1][0]][self.player_positions[-1][1]] == 'apple':
+            board.field[self.player_positions[-1][0]][self.player_positions[-1][1]] = 'empty'
             apple.destrukt_apple()
-            self.snake_size += 1
             apple.place_apple()
-
+            return True
+        return False
 
 snake = Snake()
 
@@ -151,7 +181,7 @@ class Apple():
         field_size = self.field_size
         apple_size = self.apple_size
 
-        while row == snake.player_pos_row or col == snake.player_pos_row:
+        while board.field[row][col] != 'empty':
             row = randint(0, field_size-2)
             col = randint(0, field_size-2)
 
@@ -166,7 +196,6 @@ class Apple():
 
 apple = Apple()
 apple.place_apple()
-
 while True:
     apple = snake.move(apple)
     board.update()
