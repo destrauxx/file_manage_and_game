@@ -36,7 +36,7 @@ class Snake():
         self.rect_size = RECT_SIZE
         self.player_positions = [[self.field_size//2-1, self.field_size//2-1]]
         # self.player_positions[0][1] = [self.field_size//2-1]
-        self.player_coords = [[self.player_positions[0][0] * self.rect_size, self.player_positions[0][1] * self.rect_size]]
+        # self.player_coords = [[self.player_positions[0][0] * self.rect_size, self.player_positions[0][1] * self.rect_size]]
         self.player_parts_tags = []
         self.snake = self.render_player()
         board.canvas.bind_all('<KeyPress>', self.change_direction)
@@ -53,8 +53,8 @@ class Snake():
         '''
         r_size = self.rect_size
         self.build_player_on_grid()
-        x = self.player_coords[0][0]
-        y = self.player_coords[0][1]
+        x = self.player_positions[0][0] * r_size
+        y = self.player_positions[0][1] * r_size
         self.player_parts_tags.append(
             board.canvas.create_rectangle(x, y, x + r_size, y + r_size, fill='green')
             )
@@ -99,7 +99,8 @@ class Snake():
                     print('APPLE EATED!')
                     self.player_positions.append([self.player_positions[-1][0], self.player_positions[-1][1] + 1])
                     field[self.player_positions[-1][0]][self.player_positions[-1][1]] = 'player'
-                    self.player_coords.append([self.player_positions[-1][0] * r_size, self.player_positions[-1][1] * r_size])
+                    # self.player_coords.append([self.player_positions[-1][0] * r_size, self.player_positions[-1][1] * r_size])
+                    new_part_x = self.player_positions[-1][0] * r_size
                     self.player_parts_tags.append(
                         board.canvas.create_rectangle(
                             self.player_coords[-1][0], self.player_coords[-1][1], self.player_coords[-1][0] + r_size, self.player_coords[-1][1] + r_size, fill='green')
@@ -110,14 +111,14 @@ class Snake():
                 board.canvas.move(self.player_parts_tags[-1], self.player_coords[0][0] - self.player_coords[-1][0], self.player_coords[0][1] - r_size - self.player_coords[-1][1])
 
                 # field[self.player_positions[0][0]][self.player_positions[0][1]] = 'player'
-                last_player_coords = self.player_coords.pop()
+                # last_player_coords = self.player_coords.pop()
                 last_player_position = self.player_positions.pop()
                 last_player_tag = self.player_parts_tags.pop()
-                self.player_coords.insert(0, last_player_coords)
+                # self.player_coords.insert(0, last_player_coords)
                 self.player_positions.insert(0, last_player_position)
                 self.player_parts_tags.insert(0, last_player_tag)
 
-                self.player_coords[0][1] -= r_size
+                # self.player_coords[0][1] -= r_size
                 print(self.player_coords, self.player_positions, self.player_parts_tags)
 
         if snake_direction == 'down':
